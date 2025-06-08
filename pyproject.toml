@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: MacOS"
 ]
 dependencies = ["fastmcp>=1.0.0"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.scripts]
 macos-notification-mcp = "macos_notification_mcp.server:main"

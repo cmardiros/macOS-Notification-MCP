@@ -24,6 +24,9 @@ SYSTEM_SOUNDS = [
     "Morse", "Ping", "Pop", "Purr", "Sosumi", "Submarine", "Tink"
 ]
 
+# List of available display styles for notifications
+DISPLAY_STYLES = ["notification", "dialog", "alert"]
+
 # Helper functions
 def run_command(cmd: List[str]) -> str:
     """Run a shell command and return the output."""
@@ -32,6 +35,45 @@ def run_command(cmd: List[str]) -> str:
         return result.stdout
     except subprocess.CalledProcessError as e:
         return f"Error: {e.stderr}"
+
+def generate_applescript(display_style: str, title: str, message: str, subtitle: Optional[str], sound: bool, sound_name: Optional[str]) -> str:
+    """Generate appropriate AppleScript based on display style."""
+    if display_style == "notification":
+        script_parts = [
+            'display notification',
+            f'"{message}"',
+            'with title',
+            f'"{title}"'
+        ]
+        
+        if subtitle:
+            script_parts.extend(['subtitle', f'"{subtitle}"'])
+        
+        if sound and sound_name:
+            if sound_name in SYSTEM_SOUNDS:
+                script_parts.extend(['sound name', f'"{sound_name}"'])
+        elif sound:
+            script_parts.extend(['sound name', '"default"'])
+    
+    elif display_style == "dialog":
+        script_parts = [
+            'display dialog',
+            f'"{message}"',
+            'with title',
+            f'"{title}"',
+            'with icon note',
+            'giving up after 0'
+        ]
+    
+    elif display_style == "alert":
+        script_parts = [
+            'display alert',
+            f'"{title}"',
+            'message',
+            f'"{message}"'
+        ]
+    
+    return ' '.join(script_parts)
 
 # Decorator to ensure only one notification runs at a time
 def single_notification(func):
@@ -92,7 +134,8 @@ async def banner_notification(
     message: str,
     subtitle: Optional[str] = None,
     sound: Optional[bool] = False,
-    sound_name: Optional[str] = None
+    sound_name: Optional[str] = None,
+    display_style: str = "notification"
 ) -> str:
     """
     Display a banner notification on macOS.
@@ -103,29 +146,29 @@ async def banner_notification(
         subtitle: Optional subtitle for the notification
         sound: Whether to play a sound with the notification (default: False)
         sound_name: Optional system sound to play (default: None, uses system default)
+        display_style: Display style for the notification (default: "notification")
+                      Options: notification, dialog, alert
     
     Returns:
         A message indicating the notification was sent
     """
-    script_parts = [
-        'display notification',
-        f'"{message}"',
-        'with title',
-        f'"{title}"'
-    ]
+    if display_style not in DISPLAY_STYLES:
+        return f"Error: Display style '{display_style}' not found"
     
-    if subtitle:
-        script_parts.extend(['subtitle', f'"{subtitle}"'])
+    if sound and sound_name and sound_name not in SYSTEM_SOUNDS:
+        return f"Error: Sound '{sound_name}' not found"
     
-    if sound and sound_name:
-        if sound_name in SYSTEM_SOUNDS:
-            script_parts.extend(['sound name', f'"{sound_name}"'])
-        else:
-            return f"Error: Sound '{sound_name}' not found"
-    elif sound:
-        script_parts.extend(['sound name', '"default"'])
+    # For dialog and alert styles, play sound separately since they don't support sound name parameter
+    if sound and display_style in ["dialog", "alert"]:
+        if sound_name and sound_name in SYSTEM_SOUNDS:
+            sound_cmd = ["afplay", f"/System/Library/Sounds/{sound_name}.aiff"]
+            run_command(sound_cmd)
+        elif sound:
+            # Play default system sound
+            beep_cmd = ["osascript", "-e", "beep"]
+            run_command(beep_cmd)
     
-    applescript = ' '.join(script_parts)
+    applescript = generate_applescript(display_style, title, message, subtitle, sound, sound_name)
     cmd = ["osascript", "-e", applescript]
     run_command(cmd)
     
