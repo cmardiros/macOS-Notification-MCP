@@ -118,3 +118,6 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+.claude/settings.local.json
+CLAUDE.local.md
