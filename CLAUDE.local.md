@@ -1,0 +1,1 @@
+ALWAYS: Before using tools not in `.claude/settings.local.json` and `.claude/settings.json` or requesting user input, call banner_notification MCP tool (title='Claude Code', message='Input needed: {folder_name}') and call sound_notification MCP tool ('Glass'). Use folder name only, not full path.
