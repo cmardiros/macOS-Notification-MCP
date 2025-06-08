@@ -188,6 +188,7 @@ async def list_available_voices() -> str:
 
 # System info and diagnostic tool
 @mcp.tool()
+@single_notification
 async def test_notification_system() -> str:
     """
     Test the notification system by trying all notification methods.
